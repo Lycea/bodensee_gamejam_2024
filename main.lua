@@ -37,7 +37,10 @@ function love.load(args)
   end
   
   
-  scr_w,scr_h =love.graphics.getDimensions()
+  gvar.scr_w,gvar.scr_h =love.graphics.getDimensions()
+  print("hi")
+  print("sizes",gvar.scr_h, gvar.scr_w)
+  print("what")
   glib.ui.init()
 
   --love.window.setMode(80*tile_size,50*tile_size)
@@ -111,6 +114,6 @@ end
 
 
 function love.resize(w,h)
-        scr_h=h
-        scr_w=w
+        gvar.scr_h=h
+        gvar.scr_w=w
 end

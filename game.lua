@@ -129,7 +129,7 @@ function game.play(dt)
   glib.ui.update()
 
 
-  sample_state:update()
+  sample_state:update(dt)
 
 end 
  
@@ -158,7 +158,7 @@ function game.draw()
         glib.ui.draw()
         return
     end
-
+    sample_state:draw()
     glib.ui.draw()
 end 
  
