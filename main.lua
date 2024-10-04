@@ -1,27 +1,22 @@
 gr = love.graphics
 
 
-debuger = {
-  on = function() if debuger.no_print then return end print("Not able to turn debuger on , start in debug mode")end,
-  off = function() if debuger.no_print then return end print("Not able to turn debuger off , start in debug mode")end,
-  start = function() if debuger.no_print then return end print("Not able to start debuging , start in debug mode")end,
-  no_print = true
-}
-
-
 class_base= require("helper.classic")
 console =require("helper.console")
 timer =require("helper.timer")
 
-game =require("game")
+
+g = require("globals")
+gvar = g.vars
+glib = g.libs
 
 
+game = require("game")
 
 
-
-local maj,min,rev=love.getVersion()
+local maj, min, rev = love.getVersion()
 if maj >= 11 then
-    require("helper.cindy").applyPatch()
+  require("helper.cindy").applyPatch()
 end
 
 
@@ -43,6 +38,8 @@ function love.load(args)
   
   
   scr_w,scr_h =love.graphics.getDimensions()
+  glib.ui.init()
+
   --love.window.setMode(80*tile_size,50*tile_size)
   game.load()
   
@@ -52,8 +49,6 @@ end
 
 function love.update(dt)
   game.update(dt)
-  
-  
 end
 
 function love.draw()
@@ -66,7 +61,6 @@ function love.keypressed(k,s,r)
   if key == "escape" then
     love.event.quit()
   end
-  
 end
 
 function love.keyreleased(k)

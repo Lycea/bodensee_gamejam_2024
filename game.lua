@@ -4,7 +4,6 @@ require("renderer.renderer")
 require("states.game_states")
 sample_state=require("states.state_sample")
 
-
 local game ={} 
 
 
@@ -33,17 +32,10 @@ previous_game_state = game_state
 
 
 
---others
-key_timer = 0--timer between movement
-
-
-
 mouse_coords={0,0}
 
 
 exit_timer =0
-selector_timer = 0
-target_timer   = 0
 
 show_main_menue =true
 main_menue_item = 1
@@ -54,7 +46,27 @@ selected_state_idx = 1
 ----------------------------------------------------------- 
 -- special data fields for debugging / testing only 
 ----------------------------------------------------------- 
+local ui = {
+  start_button = nil,
+  exit_button = nil
+}
 
+
+function start_btn()
+ show_main_menue = false
+  game_state = GameStates.PLAYING
+  game.new()
+
+  for k, id in pairs(ui) do
+    glib.ui.SetVisibiliti(id, false)
+    glib.ui.SetEnabled(id, false)
+  end
+  glib.ui.UnsetFocus()
+end
+
+function exit_btn()
+
+end
 
 
 function update_menue()
@@ -83,15 +95,8 @@ function update_menue()
             game_state=GameStates.PLAYING
             game.new()
           elseif main_menue_item == 2 then--load game
-            
-            
-          elseif main_menue_item == 3 then
-            
-          else
             love.event.quit()
           end
-          
-          
         end
         
         if action["exit"]~= nil then
@@ -103,9 +108,13 @@ end
 
 
 --loading a game
-function game.load() 
+function game.load()
+  print("load")
+  ui.start_button = glib.ui.AddButton("start",10,10, 50,20)
+  ui.exit_button = glib.ui.AddButton("exit", 10, 40, 50,20)
 
-
+  glib.ui.SetSpecialCallback(ui.start_button,start_btn)
+  glib.ui.SetSpecialCallback(ui.exit_button,start_btn)
 end 
  
  
@@ -117,83 +126,43 @@ end
  
 
 function game.play(dt) 
+  glib.ui.update()
 
-    
 
-  for key,v in pairs(key_list)do
-      attack   = false
-      movement = {x=0,y=0}
-      
-      --print("got some id",plid)
-      
-        --print(key,v)
-        local action=handle_keys(key)--get key callbacks
-        
-        
-        
-        if action["move"] and game_state==GameStates.PLAYING then
-            movement.x=movement.x+action["move"][1]
-            movement.y=movement.y+action["move"][2]
-        end
-        
-        
-        if action["exit"]  then
-            
-            if exit_timer +0.3 < love.timer.getTime() then
-                love.event.quit()
-            end
-            
-        end
-        
-        
-        if action["attack"] then
-            attack = true
-            
-        end
-      
-  end
- 
   sample_state:update()
-  
-  
-  -- Enemy behaviour basic / Enemy turn
-  
 
 end 
  
- 
+
+
+
+
+
 --main loop
 function game.update(dt) 
   
   --handle game stuff
   if show_main_menue == false then
     game.play(dt)
+    glib.ui.update()
     return
   end
   
-  
+    glib.ui.update()
   --handle menue
-  update_menue()
-  
-    
 end
 
  
 function game.draw() 
     if show_main_menue ==true then
-        render_menue()
-        
+        glib.ui.draw()
         return
     end
-    
-    sample_state:draw()
+
+    glib.ui.draw()
 end 
  
  
- 
- 
---default key list to check
-
 
 function game.keyHandle(key,s,r,pressed_) 
   if pressed_ == true then

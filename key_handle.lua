@@ -88,12 +88,10 @@ local exit_timer
 
 
 function handle_main_menue(key)
-  debuger.on()
   return key_list_main_manue[key_mapper[key]]
 end
 
 function handle_keys(key)
-    debuger.on()
     local state_caller_list ={
       [GameStates.PLAYING] = key_list_game,
       [GameStates.PAUSED] = key_list_paused,

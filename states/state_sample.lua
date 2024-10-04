@@ -1,9 +1,10 @@
 local sample_state =class_base:extend()
 
 
+
+
 function sample_state:new()
 
-    
     print("initialised!!")
 end
 
@@ -11,6 +12,8 @@ end
 
 
 function sample_state:startup()
+  print("startup")
+
 
 end
 
