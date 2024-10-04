@@ -46,7 +46,7 @@ end
 
 
 local plant_info ={
-  grass  =plant(0.3,1.2 , 5 , 0.2),
+  grass  =plant(0.3,2.5 , 5 , 0.2),
   flower =plant(3  ,1.3 , 10, 0.5),
   shrub  =plant(10 ,1.5 , 15, 3),
   tree   =plant(20 ,1.4 , 20, 5)
@@ -66,21 +66,27 @@ function recalculate_water()
   water_per_second = recalculate_plants() * global_boni
 end
 
+function rounded_num(num)
+  return tonumber(string.format("%.2f", num))
+end
 
 function add_plant(id)
   print("adding plant",id, id_to_plant[id])
 
-  plant_counter[id_to_plant[id]] = plant_counter[id_to_plant[id]]+1
+  local plant_name = id_to_plant[id]
+  plant_counter[plant_name] = plant_counter[plant_name]+1
+  water = water - plant_info[plant_name].cur_cost
+  plant_info[plant_name].cur_cost =  plant_info[plant_name].cur_cost * plant_info[plant_name].cur_cost_inc
 
+  local btn_obj = glib.ui.GetObject(id)
+  btn_obj.txt = plant_name.."\n".. rounded_num(plant_info[plant_name].cur_cost)
   recalculate_water()
 end
-
-
 
 local ui_initialised = false
 
 function sample_state:new()
-    print("initialised!!")
+  print("initialised!!")
 end
 
 function sample_state:startup()
@@ -88,8 +94,9 @@ function sample_state:startup()
 
   if ui_initialised == false then
     main_ui.plants.plant_1 = glib.ui.AddButton("Plant A", gvar.scr_h / 2 + gvar.scr_h / 5, gvar.scr_w / 2 - 50, 50, 50)
-    id_to_plant[main_ui.plants.plant_1]="grass"
-    glib.ui.SetSpecialCallback(main_ui.plants.plant_1,add_plant)
+    id_to_plant[main_ui.plants.plant_1] = "grass"
+    glib.ui.SetSpecialCallback(main_ui.plants.plant_1, add_plant)
+
 
     ui_initialised = true
   end
@@ -100,17 +107,25 @@ function sample_state:draw()
   love.graphics.rectangle("fill", 0, 0, gvar.scr_w, gvar.scr_h / 2)
 
   love.graphics.setColor(0, 150, 0)
-  love.graphics.rectangle("fill", 0, gvar.scr_h/2, gvar.scr_w, gvar.scr_h / 2)
+  love.graphics.rectangle("fill", 0, gvar.scr_h / 2, gvar.scr_w, gvar.scr_h / 2)
 
-  love.graphics.setColor(0,0,0)
-  love.graphics.print(water_per_second.." w/s",20,20)
-  love.graphics.print( tonumber(string.format("%.2f", water)) .." water",20,40)
+  love.graphics.setColor(0, 0, 0)
+  love.graphics.print(water_per_second .. " w/s", 20, 20)
+  love.graphics.print(tonumber(string.format("%.2f", water)) .. " water", 20, 40)
 end
 
-
-
 function sample_state:update(dt)
-   water = water + water_per_second*dt
+  water = water + water_per_second * dt
+
+  for plant_id, plant_name in pairs(id_to_plant) do
+    if plant_info[plant_name].cur_cost < water then
+      glib.ui.GetObject(plant_id).color["default_color"] = { 0, 255, 0, 255 }
+      glib.ui.SetEnabled(plant_id, true)
+    else
+      glib.ui.GetObject(plant_id).color["default_color"] = { 255, 0, 0, 255 }
+      glib.ui.SetEnabled(plant_id,false)
+     end
+   end
 end
 
 function sample_state:shutdown()
