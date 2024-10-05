@@ -13,7 +13,8 @@ local plant_unlocked ={
   grass = true,
   flower = false,
   shrub = false,
-  tree = false
+  tree = false,
+  NaN = true
 }
 
 local plant_counter ={
@@ -31,11 +32,13 @@ local global_boni = 1
 
 local plant=class_base:extend()
 
-function plant:new(base_cost,base_cost_inc,base_health,base_water_gen)
+function plant:new(base_cost,base_cost_inc,base_health,base_water_gen,size)
   self.base_cost = base_cost
   self.base_cost_inc = base_cost_inc
   self.base_max_health = base_health
   self.base_water_gen = base_water_gen
+
+  self.size = size
 
   self.cur_cost = self.base_cost
   self.cur_cost_inc = self.base_cost_inc
@@ -44,13 +47,32 @@ function plant:new(base_cost,base_cost_inc,base_health,base_water_gen)
   self.cur_water_gen = self.base_water_gen
 end
 
+local plant_objects ={
+  grass ={},
+  flower = {},
+  shrub ={},
+  tree = {}
+}
+
+local plant_unlock ={
+  grass = "flower",
+  flower = "shrub",
+  shrub = "tree",
+  tree = "NaN"
+}
 
 local plant_info ={
-  grass  =plant(0.3,2.5 , 5 , 0.2),
-  flower =plant(3  ,1.3 , 10, 0.5),
-  shrub  =plant(10 ,1.5 , 15, 3),
-  tree   =plant(20 ,1.4 , 20, 5)
+  grass  =plant(0.3, 1.7 , --cost, cost inc
+                5 , 0.2,   --health, water/s
+                {w=10,h=8} --size
+           ),
+  flower =plant(3  ,1.3 , 10, 0.5, {w=5,h=10}),
+  shrub  =plant(10 ,1.5 , 15, 3, {w=10,h=10}),
+  tree   =plant(20 ,1.4 , 20, 5, {w=15,h=20})
 }
+
+local plants_unlocked = 0
+
 function recalculate_plants()
   local plant_sum = 0
 
@@ -70,6 +92,17 @@ function rounded_num(num)
   return tonumber(string.format("%.2f", num))
 end
 
+function unlock_plant(name)
+  main_ui.plants[name] = glib.ui.AddButton(name,
+                                           gvar.scr_h / 2 + -50 + plants_unlocked * 80,
+                                           gvar.scr_w / 2 - 50  ,
+                                           50, 50)
+  id_to_plant[main_ui.plants[name]] = name
+  glib.ui.SetSpecialCallback(main_ui.plants[name], add_plant)
+
+  plants_unlocked= plants_unlocked+1
+end
+
 function add_plant(id)
   print("adding plant",id, id_to_plant[id])
 
@@ -78,6 +111,19 @@ function add_plant(id)
   water = water - plant_info[plant_name].cur_cost
   plant_info[plant_name].cur_cost =  plant_info[plant_name].cur_cost * plant_info[plant_name].cur_cost_inc
 
+    table.insert(plant_objects[plant_name],
+                 {
+                   w=plant_info[plant_name].size.w, h=plant_info[plant_name].size.h,
+                  x= love.math.random(0,gvar.scr_w- 20),y= gvar.scr_h/2
+                 }
+                )
+
+  if plant_counter[plant_name] >=5 and plant_unlocked[ plant_unlock[plant_name]  ]  == false then
+    local next_plant = plant_unlock[plant_name]
+    unlock_plant(next_plant)
+    plant_unlocked[next_plant]=true
+  end
+  
   local btn_obj = glib.ui.GetObject(id)
   btn_obj.txt = plant_name.."\n".. rounded_num(plant_info[plant_name].cur_cost)
   recalculate_water()
@@ -93,25 +139,33 @@ function sample_state:startup()
   print("startup")
 
   if ui_initialised == false then
-    main_ui.plants.plant_1 = glib.ui.AddButton("Plant A", gvar.scr_h / 2 + gvar.scr_h / 5, gvar.scr_w / 2 - 50, 50, 50)
-    id_to_plant[main_ui.plants.plant_1] = "grass"
-    glib.ui.SetSpecialCallback(main_ui.plants.plant_1, add_plant)
-
+    unlock_plant("grass")
 
     ui_initialised = true
   end
 end
 
 function sample_state:draw()
+  --background
   love.graphics.setColor(0, 0, 255)
   love.graphics.rectangle("fill", 0, 0, gvar.scr_w, gvar.scr_h / 2)
 
   love.graphics.setColor(0, 150, 0)
   love.graphics.rectangle("fill", 0, gvar.scr_h / 2, gvar.scr_w, gvar.scr_h / 2)
 
+  --water stats
   love.graphics.setColor(0, 0, 0)
   love.graphics.print(water_per_second .. " w/s", 20, 20)
   love.graphics.print(tonumber(string.format("%.2f", water)) .. " water", 20, 40)
+
+  --plants !
+  for name, available_plants in pairs(plant_objects) do
+    for _, planted_plant in pairs(available_plants) do
+      love.graphics.rectangle("line",
+                              planted_plant.x ,planted_plant.y -planted_plant.h,
+                              planted_plant.w ,planted_plant.h)
+    end
+  end
 end
 
 function sample_state:update(dt)
