@@ -64,11 +64,11 @@ local plant_unlock ={
 local plant_info ={
   grass  =plant(0.3, 1.7 , --cost, cost inc
                 5 , 0.2,   --health, water/s
-                {w=10,h=8} --size
+                {w=32,h=16} --size
            ),
-  flower =plant(3  ,1.3 , 10, 0.5, {w=5,h=10}),
-  shrub  =plant(10 ,1.5 , 15, 3, {w=10,h=10}),
-  tree   =plant(20 ,1.4 , 20, 5, {w=15,h=20})
+  flower =plant(3  ,1.3 , 10, 0.5, {w=20,h=40}),
+  shrub  =plant(10 ,1.5 , 15, 3, {w=20,h=20}),
+  tree   =plant(20 ,1.4 , 20, 5, {w=20,h=60})
 }
 
 local plants_unlocked = 0
@@ -99,6 +99,10 @@ function unlock_plant(name)
                                            50, 50)
   id_to_plant[main_ui.plants[name]] = name
   glib.ui.SetSpecialCallback(main_ui.plants[name], add_plant)
+
+
+  local btn_obj = glib.ui.GetObject(main_ui.plants[name])
+  btn_obj.txt = name .. "\n" .. rounded_num(plant_info[name].cur_cost)
 
   plants_unlocked= plants_unlocked+1
 end
