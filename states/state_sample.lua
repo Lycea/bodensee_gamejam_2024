@@ -152,11 +152,26 @@ end
 --   FIRE stuff
 --------------------------------------
 
-local total_fire_countdown = 5
+local total_fire_countdown = 30
 local current_countdown = 0
 
 local fire_elements ={}
 local elementa_amount = 3
+
+local to_delete_btns = {}
+
+function clicked_fire(id)
+  for _, fire in pairs(fire_elements) do
+    if fire.btn_id == id then
+      water = water - fire.cost
+      glib.ui.SetEnabled(id,false)
+      table.insert(to_delete_btns,id)
+      fire_elements[_] = nil
+    end
+  end
+end
+
+local wave_count = 1
 
 function spawn_fire()
   local available_types = {}
@@ -187,12 +202,18 @@ function spawn_fire()
 
       if plant_objects[p_type][idx].burning ~= true  then
         plant_objects[p_type][idx].burning = true
+
+        local fire_btn_id = glib.ui.AddButton("f", plant_objects[p_type][idx].x, plant_objects[p_type][idx].y - plant_objects[p_type][idx].h  ,20,20)
+        glib.ui.SetSpecialCallback(fire_btn_id,clicked_fire)
+       
         table.insert(fire_elements,{
                        hooked_plant = {
                          obj = plant_objects[p_type][idx],
                          p_type=p_type},
                        pos = {x= plant_objects[p_type][idx].x,y=0 },
-                       fire_tick = 1
+                       fire_tick = 1 * wave_count,
+                       cost = 5 * wave_count,
+                       btn_id = fire_btn_id
         })
         break
       end
@@ -201,6 +222,7 @@ function spawn_fire()
     end
   end
 
+  wave_count= wave_count+1
   elementa_amount=elementa_amount+1.5
   
 end
@@ -223,7 +245,10 @@ function sample_state:startup()
   end
 end
 
+local game_over = false
+
 function sample_state:draw()
+
   --background
   love.graphics.setColor(0, 0, 255)
   love.graphics.rectangle("fill", 0, 0, gvar.scr_w, gvar.scr_h / 2)
@@ -235,6 +260,12 @@ function sample_state:draw()
   love.graphics.setColor(0, 0, 0)
   love.graphics.print(water_per_second .. " w/s", 20, 20)
   love.graphics.print(tonumber(string.format("%.2f", water)) .. " water", 20, 40)
+
+
+if game_over then
+  return
+end
+
 
   --plants !
   for name, available_plants in pairs(plant_objects) do
@@ -254,10 +285,16 @@ function sample_state:draw()
   love.graphics.setColor(0, 0, 0)
   love.graphics.print("NEXT FIRE:\n ".. math.floor(total_fire_countdown - current_countdown +0.5 ).." s",
   gvar.scr_w/2 -gvar.scr_w/5 ,0)
+
 end
 
 
+
 function sample_state:update(dt)
+  if game_over then
+    return
+  end
+
   water = water + water_per_second * dt
 
   --fire updater
@@ -275,6 +312,15 @@ function sample_state:update(dt)
       fire.pos.y = fire.pos.y + fire_pix_per_sec * dt
     else
       fire.hooked_plant.obj.health = fire.hooked_plant.obj.health - fire.fire_tick*dt
+      glib.ui.SetEnabled(fire.btn_id)
+      
+      if fire.cost < water then
+        glib.ui.GetObject(fire.btn_id).color["default_color"] = { 20, 20, 255, 255 }
+        glib.ui.SetEnabled(fire.btn_id, true)
+      else
+        glib.ui.GetObject(fire.btn_id).color["default_color"] = { 255, 0, 0, 255 }
+        glib.ui.SetEnabled(fire.btn_id, false)
+      end
 
       if fire.hooked_plant.obj.health<= 0 then
         local plant_name = fire.hooked_plant.p_type
@@ -287,12 +333,17 @@ function sample_state:update(dt)
         local btn_obj = glib.ui.GetObject(plant_to_id[plant_name])
         btn_obj.txt = plant_name .. "\n" .. rounded_num(plant_info[plant_name].cur_cost)
 
+        if water_per_second <= 0 then
+          game_over =  true
+        end
+
         table.insert(fire_to_remove ,1, _)
       end
     end
   end
 
   for _,fire_id in pairs(fire_to_remove) do
+    glib.ui.RemoveComponent(fire_elements[fire_id].btn_id)
     fire_elements[fire_id] = nil
   end
   
@@ -307,6 +358,11 @@ function sample_state:update(dt)
       glib.ui.SetEnabled(plant_id,false)
      end
    end
+
+  for _,btn in pairs(to_delete_btns) do
+    glib.ui.RemoveComponent(btn)
+  end
+  to_delete_btns = {}
 end
 
 function sample_state:shutdown()
