@@ -9,6 +9,10 @@ local main_ui ={
 local id_to_plant ={
   
 }
+
+local plant_to_id ={
+  
+}
 local plant_unlocked ={
   grass = true,
   flower = false,
@@ -98,6 +102,8 @@ function unlock_plant(name)
                                            gvar.scr_w / 2 - 50  ,
                                            50, 50)
   id_to_plant[main_ui.plants[name]] = name
+  plant_to_id[name]=main_ui.plants[name]
+
   glib.ui.SetSpecialCallback(main_ui.plants[name], add_plant)
 
 
@@ -107,20 +113,29 @@ function unlock_plant(name)
   plants_unlocked= plants_unlocked+1
 end
 
+local plant_id = 0
+
+
+
 function add_plant(id)
   print("adding plant",id, id_to_plant[id])
-
+  
   local plant_name = id_to_plant[id]
   plant_counter[plant_name] = plant_counter[plant_name]+1
   water = water - plant_info[plant_name].cur_cost
   plant_info[plant_name].cur_cost =  plant_info[plant_name].cur_cost * plant_info[plant_name].cur_cost_inc
 
-    table.insert(plant_objects[plant_name],
+  local cur_id = plant_name.."_"..plant_id
+  plant_id=plant_id+1
+
+  plant_objects[plant_name][cur_id] =
                  {
                    w=plant_info[plant_name].size.w, h=plant_info[plant_name].size.h,
-                  x= love.math.random(0,gvar.scr_w- 20),y= gvar.scr_h/2
+                  x= love.math.random(0,gvar.scr_w- 20),y= gvar.scr_h/2,
+                  max_health = plant_info[plant_name].cur_max_health,
+                  health = plant_info[plant_name].cur_max_health,
+                  id=cur_id, plant_type=plant_name
                  }
-                )
 
   if plant_counter[plant_name] >=5 and plant_unlocked[ plant_unlock[plant_name]  ]  == false then
     local next_plant = plant_unlock[plant_name]
@@ -133,6 +148,65 @@ function add_plant(id)
   recalculate_water()
 end
 
+--------------------------------------
+--   FIRE stuff
+--------------------------------------
+
+local total_fire_countdown = 5
+local current_countdown = 0
+
+local fire_elements ={}
+local elementa_amount = 3
+
+function spawn_fire()
+  local available_types = {}
+  for p_type, count in pairs(plant_counter) do
+    if count >0 then
+      print("avail "..p_type)
+      table.insert(available_types,p_type)
+    end
+  end
+  print("elements: "..math.ceil(elementa_amount))
+  for i=0, math.floor(elementa_amount +0.5) do
+    retries = 3
+
+    while retries > 0 do
+      --print("types: "..#available_types)
+      type__ = love.math.random(1,#available_types)
+      --print("type selected: "..type__.." ,"..available_types[type__])
+      
+      local p_type = available_types[type__]
+      local key_list ={}
+      for ids_ ,_ in pairs(plant_objects[p_type]) do
+        table.insert(key_list,ids_)
+        print("avail id"..ids_)
+      end
+
+      local idx = key_list[love.math.random(1,  #key_list)]
+      print("selected_id",idx)
+
+      if plant_objects[p_type][idx].burning ~= true  then
+        plant_objects[p_type][idx].burning = true
+        table.insert(fire_elements,{
+                       hooked_plant = {
+                         obj = plant_objects[p_type][idx],
+                         p_type=p_type},
+                       pos = {x= plant_objects[p_type][idx].x,y=0 },
+                       fire_tick = 1
+        })
+        break
+      end
+
+      retries = retries -1
+    end
+  end
+
+  elementa_amount=elementa_amount+1.5
+  
+end
+
+-----------------
+-- base functions
 local ui_initialised = false
 
 function sample_state:new()
@@ -170,11 +244,60 @@ function sample_state:draw()
                               planted_plant.w ,planted_plant.h)
     end
   end
+
+  love.graphics.setColor(255, 0, 0)
+  for _, info in pairs(fire_elements) do
+    love.graphics.rectangle("fill", info.pos.x, info.pos.y, 20, 20)
+  end
+
+  --fire stuff
+  love.graphics.setColor(0, 0, 0)
+  love.graphics.print("NEXT FIRE:\n ".. math.floor(total_fire_countdown - current_countdown +0.5 ).." s",
+  gvar.scr_w/2 -gvar.scr_w/5 ,0)
 end
+
 
 function sample_state:update(dt)
   water = water + water_per_second * dt
 
+  --fire updater
+  current_countdown= current_countdown +dt
+
+  if current_countdown >= total_fire_countdown then
+    spawn_fire()
+    current_countdown = 0
+  end
+
+  local fire_pix_per_sec = 400
+  local fire_to_remove={}
+  for _,fire in pairs(fire_elements) do
+    if fire.pos.y < fire.hooked_plant.obj.y -fire.hooked_plant.obj.h then
+      fire.pos.y = fire.pos.y + fire_pix_per_sec * dt
+    else
+      fire.hooked_plant.obj.health = fire.hooked_plant.obj.health - fire.fire_tick*dt
+
+      if fire.hooked_plant.obj.health<= 0 then
+        local plant_name = fire.hooked_plant.p_type
+        plant_objects[plant_name][fire.hooked_plant.obj.id]=nil
+        plant_counter[plant_name] = plant_counter[plant_name] - 1
+        recalculate_water()
+        
+        plant_info[plant_name].cur_cost =  plant_info[plant_name].cur_cost / plant_info[plant_name].cur_cost_inc
+
+        local btn_obj = glib.ui.GetObject(plant_to_id[plant_name])
+        btn_obj.txt = plant_name .. "\n" .. rounded_num(plant_info[plant_name].cur_cost)
+
+        table.insert(fire_to_remove ,1, _)
+      end
+    end
+  end
+
+  for _,fire_id in pairs(fire_to_remove) do
+    fire_elements[fire_id] = nil
+  end
+  
+
+  --plant purchase handler
   for plant_id, plant_name in pairs(id_to_plant) do
     if plant_info[plant_name].cur_cost < water then
       glib.ui.GetObject(plant_id).color["default_color"] = { 0, 255, 0, 255 }
