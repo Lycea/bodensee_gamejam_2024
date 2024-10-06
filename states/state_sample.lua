@@ -152,7 +152,7 @@ end
 --   FIRE stuff
 --------------------------------------
 
-local total_fire_countdown = 30
+local total_fire_countdown = 20
 local current_countdown = 0
 
 local fire_elements ={}
@@ -165,6 +165,8 @@ function clicked_fire(id)
     if fire.btn_id == id then
       water = water - fire.cost
       glib.ui.SetEnabled(id,false)
+
+      fire_elements[_].hooked_plant.obj.burning = false
       table.insert(to_delete_btns,id)
       fire_elements[_] = nil
     end
@@ -173,7 +175,12 @@ end
 
 local wave_count = 1
 
+function add_fire()
+  
+end
+
 function spawn_fire()
+
   local available_types = {}
   for p_type, count in pairs(plant_counter) do
     if count >0 then
@@ -206,6 +213,7 @@ function spawn_fire()
         local fire_btn_id = glib.ui.AddButton("f", plant_objects[p_type][idx].x, plant_objects[p_type][idx].y - plant_objects[p_type][idx].h  ,20,20)
         glib.ui.SetSpecialCallback(fire_btn_id,clicked_fire)
        
+        glib.ui.SetVisibiliti(fire_btn_id,false)
         table.insert(fire_elements,{
                        hooked_plant = {
                          obj = plant_objects[p_type][idx],
@@ -230,9 +238,43 @@ end
 -----------------
 -- base functions
 local ui_initialised = false
+local images ={}
+local image_list={}
+local function recursiveEnumerate(folder, fileTree)
+  local lfs = love.filesystem
+  local filesTable = lfs.getDirectoryItems(folder)
+  for i, v in ipairs(filesTable) do
+    local file = folder .. "/" .. v
+    if lfs.isFile(file) and file:find(".png") then
+      
+      image_list[#image_list + 1] = file
+
+    elseif lfs.isDirectory(file) then
+      fileTree = fileTree .. "\n" .. file .. " (DIR)"
+      fileTree = recursiveEnumerate(file, fileTree)
+    end
+  end
+  return fileTree
+end
+
+local function load_icons()
+  --load all the modules
+  recursiveEnumerate("assets", "")
+
+  for _, img in pairs(image_list) do
+    path      = img
+    type_name = img:gsub(".png", ""):gsub("assets/","")
+    print("   loading icon:  " .. type_name.."  "..path)
+    images[type_name] = love.graphics.newImage(path)
+  end
+end
+
+
+
 
 function sample_state:new()
   print("initialised!!")
+  load_icons()
 end
 
 function sample_state:startup()
@@ -263,22 +305,29 @@ function sample_state:draw()
 
 
 if game_over then
-  return
-end
+
+    love.graphics.setColor(255, 255, 255)
+    love.graphics.draw(images["game_over"], 200, 50)
+    return
+  end
 
 
   --plants !
+
+  love.graphics.setColor(255, 255, 255)
   for name, available_plants in pairs(plant_objects) do
     for _, planted_plant in pairs(available_plants) do
-      love.graphics.rectangle("line",
-                              planted_plant.x ,planted_plant.y -planted_plant.h,
-                              planted_plant.w ,planted_plant.h)
+      -- love.graphics.rectangle("line",
+      --   planted_plant.x, planted_plant.y - planted_plant.h,
+      --   planted_plant.w, planted_plant.h)
+      love.graphics.draw(images[name],
+        planted_plant.x, planted_plant.y - planted_plant.h)
     end
   end
 
-  love.graphics.setColor(255, 0, 0)
   for _, info in pairs(fire_elements) do
-    love.graphics.rectangle("fill", info.pos.x, info.pos.y, 20, 20)
+    --love.graphics.rectangle("line", info.pos.x, info.pos.y, 20, 20)
+    love.graphics.draw(images["fire"], info.pos.x, info.pos.y)
   end
 
   --fire stuff
@@ -303,6 +352,7 @@ function sample_state:update(dt)
   if current_countdown >= total_fire_countdown then
     spawn_fire()
     current_countdown = 0
+    total_fire_countdown = math.max( total_fire_countdown -3,10)
   end
 
   local fire_pix_per_sec = 400
