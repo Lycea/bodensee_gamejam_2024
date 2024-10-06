@@ -292,7 +292,7 @@ local game_over = false
 function sample_state:draw()
 
   --background
-  love.graphics.setColor(0, 0, 255)
+  love.graphics.setColor(104, 238, 231)
   love.graphics.rectangle("fill", 0, 0, gvar.scr_w, gvar.scr_h / 2)
 
   love.graphics.setColor(0, 150, 0)
