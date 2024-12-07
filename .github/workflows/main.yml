@@ -21,6 +21,8 @@ jobs:
     steps:
     - name: 'Checkout GitHub Action'
       uses: actions/checkout@v4
+      with:
+        submodules: 'true'
       
     - name: 'Setup npm for building ...'
       uses: actions/setup-node@v4
