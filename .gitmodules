@@ -1,7 +1,3 @@
-[submodule "SimpleUi"]
-    path = helper/SimpleUi
-    url = https://github.com/Lycea/SimpleUi.git
-    branch = ggj_fixes  	
-
-
-
+[submodule "helper/SimpleUi"]
+	path = helper/SimpleUi
+	url = https://github.com/Lycea/SimpleUI.git
