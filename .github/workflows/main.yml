@@ -23,6 +23,8 @@ jobs:
       
     - name: 'Setup npm for building ...'
       uses: action/setup-node@v4.1.0
+
+    - name: "install dependency"
       run: npm i love.js
 
     - name: "zip game ..."
