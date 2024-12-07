@@ -1,0 +1,49 @@
+name: Build love2d for web
+
+on:
+  push:
+    branches: ["master"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v4
+      
+    - name: 'Setup npm for building ...'
+      uses: action/setup-node@v4.1.0
+      run: npm i love.js
+
+    - name: "zip game ..."
+      shell: bash
+      run: |
+        zip -9 -r Game.love .
+        
+    - name: "build web version..."
+      shell: bash
+      run: |
+        npx love.js Game.love game -c title Game
+
+    - name: 'Setup Pages'
+      uses: actions/configure-pages@v5
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        # Upload entire repository
+        path: './game/'
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
