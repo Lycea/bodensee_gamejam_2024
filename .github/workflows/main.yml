@@ -1,8 +1,9 @@
 name: Build love2d for web
 
-on:
+on: 
   push:
     branches: ["master"]
+  workflow_dispatch:
 
 permissions:
   contents: read
