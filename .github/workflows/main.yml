@@ -22,7 +22,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: 'Setup npm for building ...'
-      uses: action/setup-node@v4.1.0
+      uses: action/setup-node@v4
 
     - name: "install dependency"
       run: npm i love.js
